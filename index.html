@@ -2792,6 +2792,7 @@
         let countryIPRegions = [];
         let selectedCountryIPRegions = new Set();
         let countryIPLastResult = null;
+        let serverConfigSyncManual = false;
         let nsbHeaders = [];
         let nsbRows = [];
         let nsbLiveRows = [];
@@ -3350,14 +3351,19 @@
             }
         }
 
-        function loadConfigFromServer() {
+        function loadConfigFromServer(manual = true) {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                showNoticeCard('服务器连接尚未就绪，请等待“已连接服务器”后再试');
+                if (manual) {
+                    showNoticeCard('服务器连接尚未就绪，请等待“已连接服务器”后再试');
+                }
                 return false;
             }
             const sent = wsSend({ type: 'get_config' });
             if (sent) {
-                log('正在从服务器同步配置...');
+                if (manual) {
+                    serverConfigSyncManual = true;
+                }
+                log(manual ? '正在从服务器同步配置...' : '正在自动同步服务器配置...');
             }
             return sent;
         }
@@ -3636,6 +3642,12 @@
                 updateStatus('已连接服务器', true);
                 log('已连接服务器');
                 initThemeFromStorage();
+
+                // 页面进入/重新连接后自动同步服务器配置。
+                // 服务器配置作为当前页面配置的唯一权威来源，避免每次打开
+                // 页面都必须手动点击“从服务器同步配置”。
+                loadConfigFromServer(false);
+
                 // 页面进入并建立 WebSocket 后自动刷新 Cloudflare 地区列表。
                 // 失败时只记录提示，不影响官方/非标优选的其他功能。
                 loadCountryIPRegions(true);
@@ -6615,7 +6627,8 @@
                     applySpeedUrlConfig('officialSpeedUrl', 'officialSpeedUrlPreset', speedDefault);
                     applySpeedUrlConfig('nsbSpeedUrl', 'nsbSpeedUrlPreset', speedDefault);
                     renderVersionInfo(msg.data || {});
-                    autoLoadConfig();
+                    // 服务器配置现在由 WebSocket 连接建立后自动同步，
+                    // 这里不再使用本地 localStorage / 配置文件覆盖服务器配置。
                     break;
                 case 'version_info':
                     renderVersionInfo(msg.data || {});
@@ -6660,7 +6673,10 @@
                     }
 
                     log('配置文件已从服务器加载');
-                    showNoticeCard('服务器配置同步成功');
+                    if (serverConfigSyncManual) {
+                        showNoticeCard('服务器配置同步成功');
+                        serverConfigSyncManual = false;
+                    }
                     break;
                 }
                 case 'save_config_result':
