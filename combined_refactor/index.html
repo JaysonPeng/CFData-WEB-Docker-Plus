@@ -2134,7 +2134,7 @@
                         </div>
                         <div class="country-ip-toolbar">
                             <span id="countryIPSelectedCount" class="country-ip-selected">未选择地区</span>
-                            <button type="button" class="mini-action-btn country-ip-tool-btn" onclick="loadCountryIPRegions()">加载地区</button>
+                            
                             <button type="button" class="mini-action-btn country-ip-tool-btn" onclick="selectAllCountryIPRegions()">全选</button>
                             <button type="button" class="mini-action-btn country-ip-tool-btn" onclick="clearCountryIPRegions()">清空</button>
                         </div>
@@ -2146,7 +2146,7 @@
 
                     <div class="country-ip-settings">
                         <div class="option-item country-ip-option">
-                            <span class="label" title="按当前选择的地区数量自动均分总数量；选择地区后会自动调整">📊 每地区数量</span>
+                            <span class="label" title="默认按所选地区实际 IP 总数获取；选择地区后会自动调整">📊 每地区数量</span>
                             <div class="field-with-action country-ip-quantity-field">
                                 <input id="countryIPLimit" type="number" value="50" min="1" max="5000" placeholder="50" oninput="markCountryIPLimitManual()">
                                 <span id="countryIPQuantityHint" class="country-ip-quantity-hint">未选择地区</span>
@@ -3705,7 +3705,6 @@
             if (fileInput) fileInput.value = '';
             switchMode('nsb');
             log(`已将 ${countryIPLastResult.count || 0} 个地区 IP 导入非标优选，可直接开始测速`);
-            showNoticeCard('地区 IP 已导入非标优选，点击“开始扫描与测试”即可测速');
         }
 
         function connect() {
@@ -6748,7 +6747,6 @@
                     if (countryOutput) countryOutput.value = msg.data.formattedText || '';
                     if (countrySummary) countrySummary.textContent = `共获取 ${msg.data.count || 0} 个 IP，可点击“导入非标优选测速”直接进入测速流程。数据源：${msg.data.sourceURL || 'zip.cm.edu.kg/all.txt'}`;
                     log(`地区 IP 获取完成，共 ${msg.data.count || 0} 个`);
-                    showNoticeCard(`地区 IP 获取成功，共 ${msg.data.count || 0} 个`);
                     break;
                 case 'config_data': {
                     serverConfigAutoSyncLoaded = true;
