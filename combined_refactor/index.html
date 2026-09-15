@@ -158,50 +158,329 @@
         }
 
         .country-ip-panel {
-            margin-bottom: 14px;
-            padding: 14px;
+            grid-column: 1 / -1;
+            width: 100%;
+            min-width: 0;
+            margin: 0;
+            padding: 18px;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            background: var(--panel-bg);
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--card-bg), var(--bg-color));
+            box-shadow: 0 8px 20px rgba(30, 41, 59, .05);
         }
-        .country-ip-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-            gap: 7px;
-            max-height: 210px;
-            overflow-y: auto;
-            padding: 8px 0;
+
+        .country-ip-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-color);
         }
-        .country-ip-region {
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
-            color: var(--text-color);
-            border-radius: 8px;
-            padding: 7px 5px;
-            cursor: pointer;
+
+        .country-ip-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 28px;
+        }
+
+        .country-ip-title span {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: var(--bg-color);
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .country-ip-source {
+            margin-top: 4px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            line-height: 18px;
+        }
+
+        .country-ip-source a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .country-ip-source a:hover {
+            text-decoration: underline;
+        }
+
+        .country-ip-source i {
+            display: inline-block;
+            width: 1px;
+            height: 12px;
+            margin: 0 8px;
+            background: var(--border-color);
+            vertical-align: middle;
+        }
+
+        .country-ip-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .country-ip-selected {
+            color: var(--primary-color);
+            font-size: 12px;
+            font-weight: 700;
+            margin-right: 2px;
+        }
+
+        .country-ip-tool-btn {
+            width: auto !important;
+            min-width: 70px;
+            height: 36px;
+            padding: 0 12px;
+            margin-top: 0 !important;
             font-size: 12px;
         }
+
+        .country-ip-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 9px;
+            max-height: 230px;
+            overflow-y: auto;
+            padding: 14px 2px 4px;
+        }
+
+        .country-ip-region {
+            width: 100%;
+            min-height: 58px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            border-radius: 10px;
+            padding: 8px 7px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 17px;
+            transition: all .18s ease;
+        }
+
+        .country-ip-region:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, .08);
+        }
+
         .country-ip-region.active {
             border-color: var(--primary-color);
-            background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+            background: color-mix(in srgb, var(--primary-color) 10%, var(--card-bg));
+            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, .15);
         }
-        .country-ip-output {
+
+        .country-ip-empty {
+            grid-column: 1 / -1;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .country-ip-settings {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 12px;
+            background: rgba(248, 250, 252, .58);
+        }
+
+        body.dark-theme .country-ip-settings {
+            background: rgba(15, 23, 42, .28);
+        }
+
+        .country-ip-option {
+            min-height: 56px;
+            padding: 8px 10px;
+            box-shadow: none;
+        }
+
+        .country-ip-option .label {
+            flex: 0 0 105px;
+            white-space: nowrap;
+        }
+
+        .country-ip-option input,
+        .country-ip-option select {
+            flex: 1 1 auto;
             width: 100%;
-            min-height: 130px;
+        }
+
+        .country-ip-option .field-with-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .country-ip-option .field-with-action select {
+            min-width: 0;
+        }
+
+        .country-ip-option .field-with-action input {
+            flex: 0 0 105px;
+        }
+
+        .country-ip-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-top: 10px;
+        }
+
+        .country-ip-actions button {
+            flex: 1 1 180px;
+            margin-top: 0 !important;
+        }
+
+        .country-ip-main-actions {
+            margin-top: 12px;
+        }
+
+        .country-ip-main-actions .country-ip-primary {
+            min-height: 48px;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .country-ip-result {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+        }
+
+        .country-ip-result-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        #countryIPSummary {
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .country-ip-output {
+            display: block;
+            width: 100%;
+            min-height: 150px;
+            margin-top: 0;
             box-sizing: border-box;
             resize: vertical;
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             font-size: 12px;
+            line-height: 18px;
         }
-        .country-ip-actions {
+
+        .country-ip-result-actions {
+            margin-top: 10px;
+        }
+
+        .country-ip-help {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(59, 130, 246, .06);
+            color: var(--text-secondary);
+            font-size: 11px;
+            line-height: 18px;
         }
-        .country-ip-actions button {
-            flex: 1 1 120px;
+
+        .country-ip-help strong {
+            flex-shrink: 0;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 900px) {
+            .country-ip-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .country-ip-header {
+                flex-direction: column;
+            }
+
+            .country-ip-toolbar {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .country-ip-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .country-ip-settings {
+                grid-template-columns: 1fr;
+            }
+
+            .country-ip-help {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 2px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .country-ip-panel {
+                padding: 12px;
+            }
+
+            .country-ip-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .country-ip-option {
+                flex-direction: column;
+                align-items: stretch;
+                min-height: auto;
+            }
+
+            .country-ip-option .label {
+                flex-basis: auto;
+            }
+
+            .country-ip-option .field-with-action {
+                width: 100%;
+            }
+
+            .country-ip-option .field-with-action input {
+                flex-basis: 90px;
+            }
         }
 
         .menu-btn {
@@ -1829,59 +2108,79 @@
 
             <div id="nsbControls" class="hidden">
                 <div class="country-ip-panel">
-                    <div class="control-title" style="margin-bottom:8px;">
-                        <span>🌍 Cloudflare 地区 IP</span>
-                        <span style="font-size:11px;color:var(--text-secondary);">基于 Cloudflare-Country-Specific-IP-Filter 数据源</span>
-                    </div>
-                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">
-                        数据源：<a href="https://github.com/alienwaregf/Cloudflare-Country-Specific-IP-Filter" target="_blank" rel="noopener noreferrer">alienwaregf/Cloudflare-Country-Specific-IP-Filter</a> · 数据地址：zip.cm.edu.kg/all.txt
-                    </div>
-                    <div class="country-ip-actions" style="margin-top:0;">
-                        <button class="mini-action-btn" onclick="loadCountryIPRegions()">加载地区</button>
-                        <button class="mini-action-btn" onclick="selectAllCountryIPRegions()">全选</button>
-                        <button class="mini-action-btn" onclick="clearCountryIPRegions()">清空</button>
-                    </div>
-                    <div id="countryIPRegionGrid" class="country-ip-grid">
-                        <div style="grid-column:1/-1;color:var(--text-secondary);font-size:12px;padding:8px 0;">点击“加载地区”获取最新地区及数量</div>
-                    </div>
-                    <div class="option-item">
-                        <span class="label" title="每个地区最多提取多少个 IP，0 表示不限制">📊 每地区数量</span>
-                        <input id="countryIPLimit" type="number" value="50" min="0" max="5000" placeholder="50">
-                    </div>
-                    <div class="option-item">
-                        <span class="label">🚪 端口</span>
-                        <div class="field-with-action" style="flex:1;">
-                            <select id="countryIPPortMode" onchange="updateCountryIPPortState()" style="flex:1;">
-                                <option value="source" selected>使用数据源端口</option>
-                                <option value="custom">统一指定端口</option>
-                            </select>
-                            <input id="countryIPPort" type="number" value="443" min="1" max="65535" style="width:110px;" disabled>
+                    <div class="country-ip-header">
+                        <div>
+                            <div class="country-ip-title">🌍 Cloudflare 地区 IP <span>基于 Cloudflare-Country-Specific-IP-Filter 数据源</span></div>
+                            <div class="country-ip-source">
+                                数据源：<a href="https://github.com/alienwaregf/Cloudflare-Country-Specific-IP-Filter" target="_blank" rel="noopener noreferrer">alienwaregf/Cloudflare-Country-Specific-IP-Filter</a>
+                                <i></i>
+                                数据地址：zip.cm.edu.kg/all.txt
+                            </div>
+                        </div>
+                        <div class="country-ip-toolbar">
+                            <span id="countryIPSelectedCount" class="country-ip-selected">未选择地区</span>
+                            <button type="button" class="mini-action-btn country-ip-tool-btn" onclick="loadCountryIPRegions()">加载地区</button>
+                            <button type="button" class="mini-action-btn country-ip-tool-btn" onclick="selectAllCountryIPRegions()">全选</button>
+                            <button type="button" class="mini-action-btn country-ip-tool-btn" onclick="clearCountryIPRegions()">清空</button>
                         </div>
                     </div>
-                    <div class="option-item">
-                        <span class="label">🧾 输出格式</span>
-                        <select id="countryIPFormat" onchange="updateCountryIPFormatState()">
-                            <option value="ipport_region" selected>IP:PORT#🇯🇵 日本</option>
-                            <option value="ipport_carrier_region">IP:PORT#运营商+地区</option>
-                            <option value="ipport">IP:PORT</option>
-                            <option value="ip">仅 IP</option>
-                        </select>
+
+                    <div id="countryIPRegionGrid" class="country-ip-grid">
+                        <div class="country-ip-empty">点击“加载地区”获取最新地区及数量</div>
                     </div>
-                    <div class="option-item" id="countryIPCarrierRow" style="display:none;">
-                        <span class="label">📡 运营商标签</span>
-                        <select id="countryIPCarrier">
-                            <option value="电信">电信</option>
-                            <option value="移动">移动</option>
-                            <option value="联通">联通</option>
-                        </select>
+
+                    <div class="country-ip-settings">
+                        <div class="option-item country-ip-option">
+                            <span class="label" title="每个地区最多提取多少个 IP，0 表示不限制">📊 每地区数量</span>
+                            <input id="countryIPLimit" type="number" value="50" min="0" max="5000" placeholder="50">
+                        </div>
+                        <div class="option-item country-ip-option">
+                            <span class="label">🚪 数据源端口</span>
+                            <div class="field-with-action">
+                                <select id="countryIPPortMode" onchange="updateCountryIPPortState()">
+                                    <option value="source" selected>使用数据源端口</option>
+                                    <option value="custom">统一指定端口</option>
+                                </select>
+                                <input id="countryIPPort" type="number" value="443" min="1" max="65535" disabled>
+                            </div>
+                        </div>
+                        <div class="option-item country-ip-option">
+                            <span class="label">🧾 输出格式</span>
+                            <select id="countryIPFormat" onchange="updateCountryIPFormatState()">
+                                <option value="ipport_region" selected>IP:PORT#🇯🇵 日本</option>
+                                <option value="ipport_carrier_region">IP:PORT#运营商+地区</option>
+                                <option value="ipport">IP:PORT</option>
+                                <option value="ip">仅 IP</option>
+                            </select>
+                        </div>
+                        <div class="option-item country-ip-option" id="countryIPCarrierRow" style="display:none;">
+                            <span class="label">📡 运营商标签</span>
+                            <select id="countryIPCarrier">
+                                <option value="电信">电信</option>
+                                <option value="移动">移动</option>
+                                <option value="联通">联通</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="country-ip-actions">
-                        <button class="action-btn" onclick="fetchCountryIPs()">获取地区 IP</button>
+
+                    <div class="country-ip-actions country-ip-main-actions">
+                        <button class="action-btn country-ip-primary" onclick="fetchCountryIPs()">☁ 获取地区 IP</button>
+                    </div>
+                    <div class="country-ip-result">
+                        <div class="country-ip-result-head">
+                            <span>📄 生成结果</span>
+                            <span id="countryIPSummary">共 0 个 IP</span>
+                        </div>
+                        <textarea id="countryIPOutput" class="country-ip-output" readonly placeholder="点击上方按钮获取地区 IP 后，生成的节点会显示在这里"></textarea>
+                    </div>
+                    <div class="country-ip-actions country-ip-result-actions">
+                        <button class="action-btn" onclick="copyCountryIPOutput()">复制全部</button>
                         <button class="action-btn" onclick="importCountryIPsToNSB()">导入非标优选测速</button>
-                        <button class="action-btn" onclick="copyCountryIPOutput()">复制结果</button>
                     </div>
-                    <textarea id="countryIPOutput" class="country-ip-output" readonly placeholder="获取结果后显示在这里"></textarea>
-                    <div id="countryIPSummary" style="font-size:11px;color:var(--text-secondary);margin-top:6px;"></div>
+                    <div class="country-ip-help">
+                        <strong>💡 使用说明</strong>
+                        <span>选择地区 → 设置数量和端口 → 获取地区 IP → 可直接导入非标优选测速。</span>
+                    </div>
                 </div>
                 <div class="control-title">
                     <span>非标参数</span>
@@ -3160,6 +3459,14 @@
                 const active = selectedCountryIPRegions.has(item.code) ? ' active' : '';
                 return `<button type="button" class="country-ip-region${active}" data-region="${escapeHTML(item.code)}" onclick="toggleCountryIPRegion('${escapeHTML(item.code)}')">${countryIPFlagEmoji(item.code)} ${escapeHTML(item.name)}<br><span style="opacity:.65;font-size:10px;">${escapeHTML(item.code)} · ${item.count}</span></button>`;
             }).join('');
+            updateCountryIPSelectedCount();
+        }
+
+        function updateCountryIPSelectedCount() {
+            const el = document.getElementById('countryIPSelectedCount');
+            if (!el) return;
+            const count = selectedCountryIPRegions.size;
+            el.textContent = count ? `已选择 ${count} 个地区` : '未选择地区';
         }
 
         function countryIPFlagEmoji(code) {
@@ -3178,11 +3485,13 @@
         function selectAllCountryIPRegions() {
             selectedCountryIPRegions = new Set(countryIPRegions.map(item => item.code));
             renderCountryIPRegions();
+            updateCountryIPSelectedCount();
         }
 
         function clearCountryIPRegions() {
             selectedCountryIPRegions.clear();
             renderCountryIPRegions();
+            updateCountryIPSelectedCount();
         }
 
         function loadCountryIPRegions() {
