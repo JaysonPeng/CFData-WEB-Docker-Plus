@@ -252,7 +252,8 @@
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 9px;
-            max-height: 230px;
+            min-height: 300px;
+            max-height: 380px;
             overflow-y: auto;
             padding: 14px 2px 4px;
         }
@@ -6759,12 +6760,10 @@
                     const formConfig = mapCLIConfigToForm(serverConfig);
                     applyConfigValues(formConfig);
 
-                    // CLI 配置中的 mode 决定同步后显示哪个配置页。
-                    const serverMode = serverConfig?.config?.mode || serverConfig?.mode;
-                    if (serverMode === 'official' || serverMode === 'nsb') {
-                        switchMode(serverMode);
-                    }
-
+                    // 服务器配置同步只更新表单值，不强制切换当前页面。
+                    // 否则用户已经进入“非标优选”后，如果 config_data 恰好晚到，
+                    // 服务器保存的 mode=official 会把页面再次切回“官方优选”。
+                    // 页面模式由用户当前操作决定，避免异步配置同步干扰 UI。
                     log('配置文件已从服务器加载');
                     if (serverConfigSyncManual) {
                         showNoticeCard('服务器配置同步成功');
