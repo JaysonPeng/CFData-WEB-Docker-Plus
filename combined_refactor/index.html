@@ -343,6 +343,20 @@
             flex: 0 0 105px;
         }
 
+        .country-ip-quantity-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .country-ip-quantity-hint {
+            flex: 0 0 auto;
+            color: var(--text-secondary);
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
         .country-ip-actions {
             display: flex;
             flex-wrap: wrap;
@@ -2126,13 +2140,16 @@
                     </div>
 
                     <div id="countryIPRegionGrid" class="country-ip-grid">
-                        <div class="country-ip-empty">点击“加载地区”获取最新地区及数量</div>
+                        <div class="country-ip-empty">正在自动加载地区及数量...</div>
                     </div>
 
                     <div class="country-ip-settings">
                         <div class="option-item country-ip-option">
-                            <span class="label" title="每个地区最多提取多少个 IP，0 表示不限制">📊 每地区数量</span>
-                            <input id="countryIPLimit" type="number" value="50" min="0" max="5000" placeholder="50">
+                            <span class="label" title="按当前选择的地区数量自动均分总数量；选择地区后会自动调整">📊 每地区数量</span>
+                            <div class="field-with-action country-ip-quantity-field">
+                                <input id="countryIPLimit" type="number" value="50" min="1" max="5000" placeholder="50" oninput="markCountryIPLimitManual()">
+                                <span id="countryIPQuantityHint" class="country-ip-quantity-hint">未选择地区</span>
+                            </div>
                         </div>
                         <div class="option-item country-ip-option">
                             <span class="label">🚪 数据源端口</span>
@@ -2775,6 +2792,9 @@
         let countryIPRegions = [];
         let selectedCountryIPRegions = new Set();
         let countryIPLastResult = null;
+        let countryIPRegionsLoaded = false;
+        let countryIPRegionsLoading = false;
+        let serverConfigSyncManual = false;
         let nsbHeaders = [];
         let nsbRows = [];
         let nsbLiveRows = [];
@@ -3333,16 +3353,52 @@
             }
         }
 
-        function loadConfigFromServer() {
+        let serverConfigAutoSyncLoaded = false;
+        let serverConfigAutoSyncTimer = null;
+
+        function loadConfigFromServer(manual = true) {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                showNoticeCard('服务器连接尚未就绪，请等待“已连接服务器”后再试');
+                if (manual) {
+                    showNoticeCard('服务器连接尚未就绪，请等待“已连接服务器”后再试');
+                }
                 return false;
             }
             const sent = wsSend({ type: 'get_config' });
             if (sent) {
-                log('正在从服务器同步配置...');
+                if (manual) {
+                    serverConfigSyncManual = true;
+                }
+                log(manual ? '正在从服务器同步配置...' : '正在自动同步服务器配置...');
             }
             return sent;
+        }
+
+        // 自动同步采用“连接后立即请求 + 短延迟重试”的方式。
+        // 某些 NAS/反向代理环境下，WebSocket 虽然已经 OPEN，但页面初始化、
+        // 配置文件读取或首个 WS 消息处理可能存在极短的时序差异。
+        // 手动同步无需改变，自动同步最多重试 3 次，收到 config_data 后立即停止。
+        function autoSyncServerConfig() {
+            serverConfigAutoSyncLoaded = false;
+            if (serverConfigAutoSyncTimer) {
+                clearTimeout(serverConfigAutoSyncTimer);
+                serverConfigAutoSyncTimer = null;
+            }
+
+            const delays = [100, 800, 2000];
+            let attempt = 0;
+
+            const request = () => {
+                if (serverConfigAutoSyncLoaded) return;
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                loadConfigFromServer(false);
+                attempt++;
+                if (attempt < delays.length && !serverConfigAutoSyncLoaded) {
+                    serverConfigAutoSyncTimer = setTimeout(request, delays[attempt]);
+                }
+            };
+
+            request();
         }
 
         function wsSend(payload) {
@@ -3462,11 +3518,91 @@
             updateCountryIPSelectedCount();
         }
 
+        let countryIPAutoLimit = true;
+
+        // 自动数量的规则：不再固定使用 50，也不做地区之间的平均分配。
+        // 自动模式下，每地区数量 = 当前所选地区中“可用 IP 数量最多”的那个地区数量。
+        // 这样选择日本（例如 400 个）时，输入框自动变为 400；
+        // 同时选择日本 400 + 香港 297 时仍为 400，实际获取时香港会自然取满 297。
+        function getSelectedCountryIPMaxCount() {
+            let maxCount = 0;
+            selectedCountryIPRegions.forEach(code => {
+                const item = countryIPRegions.find(region => region.code === code);
+                if (item) maxCount = Math.max(maxCount, Number(item.count) || 0);
+            });
+            return maxCount;
+        }
+
+        function getSelectedCountryIPAvailableCount() {
+            let total = 0;
+            selectedCountryIPRegions.forEach(code => {
+                const item = countryIPRegions.find(region => region.code === code);
+                if (item) total += Math.max(0, Number(item.count) || 0);
+            });
+            return total;
+        }
+
         function updateCountryIPSelectedCount() {
             const el = document.getElementById('countryIPSelectedCount');
             if (!el) return;
             const count = selectedCountryIPRegions.size;
             el.textContent = count ? `已选择 ${count} 个地区` : '未选择地区';
+            updateCountryIPQuantity();
+        }
+
+        function updateCountryIPQuantity() {
+            const input = document.getElementById('countryIPLimit');
+            const hint = document.getElementById('countryIPQuantityHint');
+            const count = selectedCountryIPRegions.size;
+
+            if (!input) return;
+
+            if (!count) {
+                if (countryIPAutoLimit) input.value = 50;
+                if (hint) hint.textContent = '请选择地区';
+                return;
+            }
+
+            const availableTotal = getSelectedCountryIPAvailableCount();
+            const maxCount = getSelectedCountryIPMaxCount();
+
+            // 自动模式：直接使用所选地区的最大可用数量，而不是固定 50。
+            // 例如日本有 400 个 IP，选择日本后输入框自动变成 400。
+            if (countryIPAutoLimit) {
+                input.value = Math.min(Math.max(1, maxCount), 5000);
+            }
+
+            const perRegion = Math.max(1, Math.min(parseInt(input.value || '1', 10) || 1, 5000));
+            const estimatedTotal = selectedCountryIPRegions.size
+                ? Array.from(selectedCountryIPRegions).reduce((sum, code) => {
+                    const item = countryIPRegions.find(region => region.code === code);
+                    const available = Math.max(0, Number(item?.count) || 0);
+                    return sum + Math.min(available, perRegion);
+                }, 0)
+                : 0;
+
+            if (hint) {
+                if (countryIPAutoLimit) {
+                    hint.textContent = `可获取 ${estimatedTotal} 个 IP（地区总数 ${availableTotal}）`;
+                } else {
+                    hint.textContent = `预计 ${estimatedTotal} 个 IP`;
+                }
+            }
+        }
+
+        function markCountryIPLimitManual() {
+            countryIPAutoLimit = false;
+            const input = document.getElementById('countryIPLimit');
+            const hint = document.getElementById('countryIPQuantityHint');
+            const count = selectedCountryIPRegions.size;
+            const value = Math.max(1, parseInt(input?.value || '1', 10) || 1);
+            if (input) input.value = Math.min(value, 5000);
+            if (hint) hint.textContent = count ? `约 ${Math.min(value, 5000) * count} 个 IP` : '未选择地区';
+        }
+
+        function resetCountryIPLimitAuto() {
+            countryIPAutoLimit = true;
+            updateCountryIPQuantity();
         }
 
         function countryIPFlagEmoji(code) {
@@ -3479,29 +3615,35 @@
         function toggleCountryIPRegion(code) {
             if (selectedCountryIPRegions.has(code)) selectedCountryIPRegions.delete(code);
             else selectedCountryIPRegions.add(code);
+            countryIPAutoLimit = true;
             renderCountryIPRegions();
         }
 
         function selectAllCountryIPRegions() {
             selectedCountryIPRegions = new Set(countryIPRegions.map(item => item.code));
+            countryIPAutoLimit = true;
             renderCountryIPRegions();
             updateCountryIPSelectedCount();
         }
 
         function clearCountryIPRegions() {
             selectedCountryIPRegions.clear();
+            countryIPAutoLimit = true;
             renderCountryIPRegions();
             updateCountryIPSelectedCount();
         }
 
-        function loadCountryIPRegions() {
+        function loadCountryIPRegions(silent = false) {
+            if (countryIPRegionsLoading) return;
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                showNoticeCard('服务器连接尚未就绪，请等待“已连接服务器”后再试');
+                if (!silent) showNoticeCard('服务器连接尚未就绪，请等待“已连接服务器”后再试');
                 return;
             }
-            log('正在加载 Cloudflare 地区 IP 列表...');
+            countryIPRegionsLoading = true;
+            if (!silent) log('正在加载 Cloudflare 地区 IP 列表...');
             if (!wsSend({ type: 'country_ip_regions' })) {
-                showNoticeCard('地区 IP 请求发送失败');
+                countryIPRegionsLoading = false;
+                if (!silent) showNoticeCard('地区 IP 请求发送失败');
             }
         }
 
@@ -3572,6 +3714,15 @@
                 updateStatus('已连接服务器', true);
                 log('已连接服务器');
                 initThemeFromStorage();
+
+                // 页面进入/重新连接后自动同步服务器配置。
+                // 使用短延迟重试，确保 NAS/代理环境下不会因为初始化时序导致
+                // 首次请求丢失。
+                autoSyncServerConfig();
+
+                // 页面进入并建立 WebSocket 后自动刷新 Cloudflare 地区列表。
+                // 失败时只记录提示，不影响官方/非标优选的其他功能。
+                loadCountryIPRegions(true);
             };
             ws.onmessage = (event) => {
                 try {
@@ -3583,6 +3734,11 @@
                 }
             };
             ws.onclose = () => {
+                if (serverConfigAutoSyncTimer) {
+                    clearTimeout(serverConfigAutoSyncTimer);
+                    serverConfigAutoSyncTimer = null;
+                }
+                serverConfigAutoSyncLoaded = false;
                 clearStopWatchdog();
                 resetCurrentSpeedButton();
                 if (backgroundTaskActive) {
@@ -3830,6 +3986,10 @@
             } else {
                 officialControls.classList.add('hidden');
                 nsbControls.classList.remove('hidden');
+                // 如果页面刚进入时 WebSocket 尚未完成地区请求，切换到非标页时再兜底请求一次。
+                if (!countryIPRegionsLoaded && !countryIPRegionsLoading) {
+                    loadCountryIPRegions(true);
+                }
                 const testTab = document.querySelectorAll('.tab')[1];
                 testTab.style.display = 'none';
                 if (document.querySelector('.tab.active') !== document.querySelector('.tabs .tab:first-child')) {
@@ -6548,7 +6708,8 @@
                     applySpeedUrlConfig('officialSpeedUrl', 'officialSpeedUrlPreset', speedDefault);
                     applySpeedUrlConfig('nsbSpeedUrl', 'nsbSpeedUrlPreset', speedDefault);
                     renderVersionInfo(msg.data || {});
-                    autoLoadConfig();
+                    // 服务器配置现在由 WebSocket 连接建立后自动同步，
+                    // 这里不再使用本地 localStorage / 配置文件覆盖服务器配置。
                     break;
                 case 'version_info':
                     renderVersionInfo(msg.data || {});
@@ -6558,11 +6719,18 @@
                     break;
                 case 'country_ip_regions_result':
                     if (!msg.data || !msg.data.success) {
+                        countryIPRegionsLoading = false;
                         showNoticeCard('加载地区 IP 失败: ' + ((msg.data && msg.data.message) || '未知错误'));
                         break;
                     }
                     countryIPRegions = Array.isArray(msg.data.regions) ? msg.data.regions : [];
+                    countryIPRegionsLoaded = true;
+                    countryIPRegionsLoading = false;
+                    // 刷新数据后保留仍然存在的已选地区。
+                    const validCodes = new Set(countryIPRegions.map(item => item.code));
+                    selectedCountryIPRegions = new Set(Array.from(selectedCountryIPRegions).filter(code => validCodes.has(code)));
                     renderCountryIPRegions();
+                    updateCountryIPSelectedCount();
                     log(`已加载 ${countryIPRegions.length} 个地区，数据源: ${msg.data.sourceURL || 'zip.cm.edu.kg/all.txt'}`);
                     break;
                 case 'country_ip_fetch_result':
@@ -6582,6 +6750,11 @@
                     showNoticeCard(`地区 IP 获取成功，共 ${msg.data.count || 0} 个`);
                     break;
                 case 'config_data': {
+                    serverConfigAutoSyncLoaded = true;
+                    if (serverConfigAutoSyncTimer) {
+                        clearTimeout(serverConfigAutoSyncTimer);
+                        serverConfigAutoSyncTimer = null;
+                    }
                     const serverConfig = msg.data || {};
                     const formConfig = mapCLIConfigToForm(serverConfig);
                     applyConfigValues(formConfig);
@@ -6593,7 +6766,10 @@
                     }
 
                     log('配置文件已从服务器加载');
-                    showNoticeCard('服务器配置同步成功');
+                    if (serverConfigSyncManual) {
+                        showNoticeCard('服务器配置同步成功');
+                        serverConfigSyncManual = false;
+                    }
                     break;
                 }
                 case 'save_config_result':
