@@ -1,0 +1,17 @@
+services:
+  cfdata-web:
+    image: ghcr.io/jaysonpeng/cfdata-web-plus:latest
+    container_name: cfdata-web
+    restart: unless-stopped
+
+    working_dir: /data
+
+    ports:
+      - "13335:13335"
+
+    environment:
+      TZ: Asia/Shanghai
+      CFDATA_CONFIG_PATH: /data/cfdata-config.json
+
+    volumes:
+      - ./data:/data
